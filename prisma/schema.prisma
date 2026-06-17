@@ -1,0 +1,187 @@
+  generator client {
+    provider = "prisma-client-js"
+  }
+
+  datasource db {
+    provider = "postgresql"
+  }
+
+  // 1. Rollar yangilandi (DIREKTOR qo'shildi)
+  enum UserRole {
+    DIREKTOR
+    ADMIN
+    TEACHER
+    STUDENT
+    }
+
+enum IsPaid {
+  paid
+  unpaid
+  half
+  
+}
+
+
+  enum PaymentStatus {
+    PAID
+    PARTIAL
+    UNPAID
+  }
+
+  enum WeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+  // 2. Foydalanuvchilar jadvali
+  model User {
+    id        String   @id @default(uuid())
+    firstName String
+    lastName  String
+    password String
+    email     String? @unique
+    phone     String?  // O'quv markaz uchun telefon raqam muhim
+    role      UserRole @default(STUDENT)
+    isEnabled Boolean  @default(true) // Siz so'ragan akkaunt holati (aktiv/faolsiz)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Munosabatlar (Relations)
+    studentProfile StudentProfile?
+    teacherProfile TeacherProfile?
+  }
+
+  // 3. O'quvchi profili (Qaysi guruhlarda o'qishi uchun Many-to-Many munosabat)
+  model StudentProfile {
+    id     String @id @default(uuid())
+    userId String @unique
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    // O'quvchi ko'plab guruhlarda o'qishi mumkin
+    groups   GroupStudent[]
+    payments Payment[]
+  }
+
+  // 4. O'qituvchi profili (Oylik hisob-kitoblari uchun)
+  model TeacherProfile {
+    id     String @id @default(uuid())
+    userId String @unique
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    percent   Float?    
+    salary Float?
+
+    groups Group[]
+    TeacherSalaryPayment TeacherSalaryPayment[]
+  }
+
+  // 5. Fanlar jadvali (Science -> Subject deb nomlash standartga yaqinroq)
+  model Subject {
+    id        Int     @id @default(autoincrement())
+    name      String
+    isActive  Boolean @default(true)
+    price     Float   // Fan narxi
+
+    groups Group[]
+  }
+
+  // 6. Guruhlar jadvali (Rejalashtirish va isActive holati bilan)
+  model Group {
+    id         String   @id @default(uuid())
+    name       String
+    subjectId  Int
+    teacherId  String
+    room       String
+    startDate  DateTime
+    days       WeekDay[]
+    startTime  String
+    endTime  String
+    isActive Boolean @default(false)
+
+    subject  Subject        @relation(fields: [subjectId], references: [id])
+    teacher  TeacherProfile @relation(fields: [teacherId], references: [id])
+    students GroupStudent[] // Guruhdagi o'quvchilar
+    Payment  Payment[]
+    createdAt  DateTime @default(now())
+  }
+
+  // 7. Guruh va O'quvchi o'rtasidagi munosabat (Many-to-Many junction table)
+  model GroupStudent {
+    id               String         @id @default(uuid())
+    groupId          String
+    studentProfileId String
+    joinedAt         DateTime       @default(now())
+
+    group          Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+    studentProfile StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+    @@unique([groupId, studentProfileId]) // Bir o'quvchi bir guruhga ikki marta qo'shilmasligi uchun
+  }
+
+  // 8. To'lovlar jadvali (Oylar va yillar kesimida moliya uchun)
+  model Payment {
+    id String @id @default(uuid())
+
+    studentProfileId String
+    groupId String
+
+    amount Float
+
+    month Int
+    year Int
+
+    haldAmout Float
+
+    status PaymentStatus @default(PAID)
+
+    paidAt DateTime @default(now())
+
+    paymentMethod String @default("CASH")
+
+    kvitansiya_url String?
+
+    createdById String
+
+    studentProfile StudentProfile @relation(fields: [studentProfileId],references: [id])
+
+    group Group @relation(fields: [groupId],references: [id])
+
+    @@unique([studentProfileId, groupId, month, year])
+
+    @@index([studentProfileId])
+    @@index([groupId])
+  }
+
+  // 9. Chiqimlar (Xarajatlar) jadvali (Moliya va statistika uchun)
+  model Expense {
+    id          String   @id @default(uuid())
+    title       String   // Chiqim nomi (Masalan: "Ijara", "Kantselyariya")
+    amount      Float    // Summa
+    description String?
+    kategoriya String?
+    createdAt   DateTime @default(now())
+    
+    // Chiqimni kim kiritganini bilish uchun
+    createdById String
+  }
+
+model TeacherSalaryPayment {
+  id        String   @id @default(uuid())
+  teacherId String
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  amount    Float
+  salary    Float    @default(0)
+  percent   Float?   // ← QO'SHILDI
+  month     Int
+  year      Int
+  isPaid    IsPaid  @default(unpaid)
+  haldAmout Float
+  paidAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([teacherId, month, year])
+}
