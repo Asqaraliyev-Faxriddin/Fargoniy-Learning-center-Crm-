@@ -25,6 +25,14 @@ export class SeaderService implements OnModuleInit {
         role: UserRole.DIREKTOR,
         password,
       },
+      {
+        firstName: 'Sultonbek',
+        lastName: `G'ulomov`,
+        email: 'sultonbek@gmail.com',
+        phone: '+998901234567',
+        role: UserRole.DIREKTOR,
+        password,
+      },
       
     ];
 
