@@ -16,6 +16,23 @@ export class SeaderService implements OnModuleInit {
   async CreateUsers() {
     const password = await bcrypt.hash('sultonbek001', 10);
 
+    const pass = await bcrypt.hash("s11111",10)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const usersData = [
       {
         firstName: 'Faxriddin',
@@ -40,6 +57,14 @@ export class SeaderService implements OnModuleInit {
         phone: '+998901234567',
         role: UserRole.DIREKTOR,
         password,
+      },
+      {
+        firstName: 'Saidraxim',
+        lastName: `Murodilov`,
+        email: 'saidraxim@gmail.com',
+        phone: '+998901234567',
+        role: UserRole.DIREKTOR,
+        password:pass,
       },
       
     ];
